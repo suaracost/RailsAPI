@@ -1,0 +1,2 @@
+class Amistad < ApplicationRecord
+end
