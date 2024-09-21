@@ -10,10 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_09_21_180509) do
+ActiveRecord::Schema[7.2].define(version: 2024_09_21_200309) do
+  create_table "amistad_writes", force: :cascade do |t|
+    t.string "cedula_persona1"
+    t.string "cedula_persona2"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "amistads", force: :cascade do |t|
     t.string "cedula_persona1"
     t.string "cedula_persona2"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "persona_writes", force: :cascade do |t|
+    t.string "cedula"
+    t.string "nombre"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

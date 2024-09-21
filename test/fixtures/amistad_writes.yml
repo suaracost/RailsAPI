@@ -1,0 +1,9 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  cedula_persona1: MyString
+  cedula_persona2: MyString
+
+two:
+  cedula_persona1: MyString
+  cedula_persona2: MyString

@@ -1,0 +1,2 @@
+class PersonaWrite < ApplicationRecord
+end
