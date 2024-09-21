@@ -1,35 +1,41 @@
 class PersonasWriteController < ApplicationController
   def create
-    @persona = Persona.new(persona_params)
-    if @persona.save
-      # Copia la información en la tabla de lectura (que es también 'personas')
-      Persona.create(cedula: @persona.cedula, nombre: @persona.nombre)
-      render json: @persona, status: :created
+    @persona_write = PersonaWrite.new(persona_params)
+    if @persona_write.save
+      # Refleja la creación en la tabla de lectura 'personas'
+      Persona.create(cedula: @persona_write.cedula, nombre: @persona_write.nombre)
+      render json: @persona_write, status: :created
     else
-      render json: @persona.errors, status: :unprocessable_entity
+      render json: @persona_write.errors, status: :unprocessable_entity
     end
   end
 
   def update
-    @persona = Persona.find(params[:id])
-    if @persona.update(persona_params)
-      # Actualiza también en la tabla de lectura
-      persona = Persona.find_by(cedula: @persona.cedula)
-      persona.update(nombre: @persona.nombre)
-      render json: @persona
+    @persona_write = PersonaWrite.find(params[:id])
+    if @persona_write.update(persona_params)
+      # Refleja la actualización en la tabla de lectura 'personas'
+      persona_lectura = Persona.find_by(cedula: @persona_write.cedula)
+      if persona_lectura
+        persona_lectura.update(nombre: @persona_write.nombre)
+      else
+        Persona.create(cedula: @persona_write.cedula, nombre: @persona_write.nombre)
+      end
+      render json: @persona_write
     else
-      render json: @persona.errors, status: :unprocessable_entity
+      render json: @persona_write.errors, status: :unprocessable_entity
     end
   end
 
   def destroy
-    @persona = Persona.find(params[:id])
-    @persona.destroy
-
-    # También elimina de la tabla de lectura
-    Persona.where(cedula: @persona.cedula).destroy_all
-
-    head :no_content
+    @persona_write = PersonaWrite.find(params[:id])
+    if @persona_write
+      # Elimina de la tabla de lectura 'personas'
+      Persona.where(cedula: @persona_write.cedula).destroy_all
+      @persona_write.destroy
+      head :no_content
+    else
+      render json: { error: "Persona no encontrada" }, status: :not_found
+    end
   end
 
   private
