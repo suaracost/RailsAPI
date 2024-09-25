@@ -17,16 +17,36 @@ class PersonasWriteController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
-  def update
-    # Aquí podrías necesitar hacer una búsqueda manual según cómo esté estructurada tu tabla
-    # Actualizamos en la tabla persona_write
-    cedula = persona_params[:cedula]
-    nombre = persona_params[:nombre]
+  def index
+    # Obtener todas las personas desde Cassandra
+    @personas = Persona.all
+    render json: @personas
+  end
 
+  def show
+    # Usar el método find_by_cedula para buscar por cédula
+    cedula = params[:id]
+    @persona = Persona.find_by_cedula(cedula)
+
+    if @persona
+      render json: @persona
+    else
+      render json: { error: "Persona no encontrada" }, status: :not_found
+    end
+  rescue StandardError => e
+    render json: { error: e.message }, status: :internal_server_error
+  end
+
+  def update
+    # Extraer la cédula de los parámetros de la URL y el nuevo nombre del cuerpo de la solicitud
+    cedula = params[:id]  # La cédula se encuentra en el parámetro :id de la URL
+    nombre = persona_params[:nombre]  # El nombre nuevo viene en el cuerpo de la solicitud
+
+    # Eliminamos el registro anterior por cédula (debe ser un método de clase)
+    PersonaWrite.delete_by_cedula(cedula)
+
+    # Crear una nueva instancia con los datos actualizados y guardarla
     @persona_write = PersonaWrite.new(cedula, nombre)
-    
-    # Eliminamos el registro anterior y guardamos el actualizado
-    @persona_write.delete_by_cedula(cedula)
     @persona_write.save
 
     # Reflejamos la actualización en la tabla de lectura 'persona'
@@ -43,14 +63,15 @@ class PersonasWriteController < ApplicationController
   end
 
   def destroy
-    # Eliminar de la tabla de escritura y lectura
-    cedula = params[:cedula]
+    # Obtener la cédula desde params[:id] en lugar de params[:cedula]
+    cedula = params[:id]
 
+    # Buscar la persona en la tabla de escritura y eliminarla
     @persona_write = PersonaWrite.find_by_cedula(cedula)
     if @persona_write
-      @persona_write.delete_by_cedula(cedula)
+      PersonaWrite.delete_by_cedula(cedula)
       
-      # Eliminamos también de la tabla de lectura
+      # Eliminar también de la tabla de lectura 'persona'
       Persona.delete_by_cedula(cedula)
 
       head :no_content
@@ -64,6 +85,7 @@ class PersonasWriteController < ApplicationController
   private
 
   def persona_params
+    # Asegúrate de permitir el parámetro :cedula
     params.require(:persona).permit(:cedula, :nombre)
   end
 end

@@ -22,11 +22,11 @@ class AmistadesWriteController < ApplicationController
     cedula_persona1 = amistad_params[:cedula_persona1]
     cedula_persona2 = amistad_params[:cedula_persona2]
 
-    # Actualizar en la tabla de escritura
-    @amistad_write = AmistadWrite.new(cedula_persona1, cedula_persona2)
-    
     # Eliminar el registro anterior en Cassandra y guardar el actualizado
-    @amistad_write.delete_by_cedulas(cedula_persona1, cedula_persona2)
+    AmistadWrite.delete_by_cedulas(cedula_persona1, cedula_persona2)
+
+    # Crear una nueva amistad con los datos actualizados y guardarla
+    @amistad_write = AmistadWrite.new(cedula_persona1, cedula_persona2)
     @amistad_write.save
 
     # Reflejar la actualización en la tabla de lectura 'amistades'
@@ -43,14 +43,16 @@ class AmistadesWriteController < ApplicationController
   end
 
   def destroy
-    # Obtener las cédulas de la amistad
-    cedula_persona1 = params[:cedula_persona1]
+    # Obtener la cédula desde params[:id] (en la URL)
+    cedula_persona1 = params[:id]
+
+    # Obtener la segunda cédula desde el cuerpo de la solicitud (params)
     cedula_persona2 = params[:cedula_persona2]
 
     # Buscar y eliminar de la tabla de escritura
     @amistad_write = AmistadWrite.find_by_cedulas(cedula_persona1, cedula_persona2)
     if @amistad_write
-      @amistad_write.delete_by_cedulas(cedula_persona1, cedula_persona2)
+      AmistadWrite.delete_by_cedulas(cedula_persona1, cedula_persona2)
 
       # También eliminar de la tabla de lectura 'amistades'
       Amistad.delete_by_cedulas(cedula_persona1, cedula_persona2)
@@ -66,6 +68,7 @@ class AmistadesWriteController < ApplicationController
   private
 
   def amistad_params
+    # Permitir los parámetros de las dos cédulas
     params.require(:amistad).permit(:cedula_persona1, :cedula_persona2)
   end
 end

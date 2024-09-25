@@ -19,5 +19,13 @@ class Amistad
       rows = $cassandra_session.execute("SELECT * FROM amistad")
       rows.map { |row| new(row['cedula_persona1'], row['cedula_persona2']) }
     end
+
+      # Método para eliminar una amistad por las dos cédulas en la tabla de lectura
+    def self.delete_by_cedulas(cedula_persona1, cedula_persona2)
+      $cassandra_session.execute(
+        "DELETE FROM amistad WHERE cedula_persona1 = ? AND cedula_persona2 = ?",
+        arguments: [cedula_persona1, cedula_persona2]
+      )
+    end
   end
   
