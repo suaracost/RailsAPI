@@ -1,39 +1,66 @@
 class AmistadesWriteController < ApplicationController
   def create
-    @amistad_write = AmistadWrite.new(amistad_params)
-    if @amistad_write.save
-      # Refleja la creación en la tabla de lectura 'amistades'
-      Amistad.create(cedula_persona1: @amistad_write.cedula_persona1, cedula_persona2: @amistad_write.cedula_persona2)
-      render json: @amistad_write, status: :created
-    else
-      render json: @amistad_write.errors, status: :unprocessable_entity
-    end
+    # Extraer los parámetros
+    cedula_persona1 = amistad_params[:cedula_persona1]
+    cedula_persona2 = amistad_params[:cedula_persona2]
+
+    # Crear una nueva amistad en la tabla de escritura
+    @amistad_write = AmistadWrite.new(cedula_persona1, cedula_persona2)
+    @amistad_write.save
+
+    # Reflejar la creación en la tabla de lectura 'amistades'
+    amistad_lectura = Amistad.new(cedula_persona1, cedula_persona2)
+    amistad_lectura.save
+
+    render json: { message: 'Amistad creada exitosamente' }, status: :created
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def update
-    @amistad_write = AmistadWrite.find(params[:id])
-    if @amistad_write.update(amistad_params)
-      # Refleja la actualización en la tabla de lectura 'amistades'
-      amistad_lectura = Amistad.find_by(params[:id])
-      if amistad_lectura
-        amistad_lectura.update(cedula_persona1: @amistad_write.cedula_persona1, cedula_persona2: @amistad_write.cedula_persona2)
-      end
-      render json: @amistad_write
+    # Obtener los parámetros de la petición
+    cedula_persona1 = amistad_params[:cedula_persona1]
+    cedula_persona2 = amistad_params[:cedula_persona2]
+
+    # Actualizar en la tabla de escritura
+    @amistad_write = AmistadWrite.new(cedula_persona1, cedula_persona2)
+    
+    # Eliminar el registro anterior en Cassandra y guardar el actualizado
+    @amistad_write.delete_by_cedulas(cedula_persona1, cedula_persona2)
+    @amistad_write.save
+
+    # Reflejar la actualización en la tabla de lectura 'amistades'
+    amistad_lectura = Amistad.find_by_cedulas(cedula_persona1, cedula_persona2)
+    if amistad_lectura
+      amistad_lectura.update(cedula_persona1, cedula_persona2)
     else
-      render json: @amistad_write.errors, status: :unprocessable_entity
+      Amistad.new(cedula_persona1, cedula_persona2).save
     end
+
+    render json: { message: 'Amistad actualizada exitosamente' }, status: :ok
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def destroy
-    @amistad_write = AmistadWrite.find(params[:id])
+    # Obtener las cédulas de la amistad
+    cedula_persona1 = params[:cedula_persona1]
+    cedula_persona2 = params[:cedula_persona2]
+
+    # Buscar y eliminar de la tabla de escritura
+    @amistad_write = AmistadWrite.find_by_cedulas(cedula_persona1, cedula_persona2)
     if @amistad_write
-      # Elimina de la tabla de lectura 'amistades'
-      Amistad.where(cedula_persona1: @amistad_write.cedula_persona1, cedula_persona2: @amistad_write.cedula_persona2).destroy_all
-      @amistad_write.destroy
+      @amistad_write.delete_by_cedulas(cedula_persona1, cedula_persona2)
+
+      # También eliminar de la tabla de lectura 'amistades'
+      Amistad.delete_by_cedulas(cedula_persona1, cedula_persona2)
+
       head :no_content
     else
       render json: { error: "Amistad no encontrada" }, status: :not_found
     end
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   private

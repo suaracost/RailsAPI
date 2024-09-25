@@ -1,0 +1,17 @@
+version: '3'
+services:
+  cassandra:
+    image: cassandra:4.0
+    container_name: cassandra_db
+    ports:
+      - "9042:9042"
+    volumes:
+      - ./cassandra_data:/var/lib/cassandra  # Persistencia de datos
+    networks:
+      - cassandra_net
+    environment:
+      - CASSANDRA_START_RPC=true  # Configuración adicional (opcional)
+
+networks:
+  cassandra_net:
+    driver: bridge
